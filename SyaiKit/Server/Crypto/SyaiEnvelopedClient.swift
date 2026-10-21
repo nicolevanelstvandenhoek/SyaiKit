@@ -19,7 +19,7 @@ public actor SyaiEnvelopedClient {
         self.urlSession = urlSession
     }
 
-    public enum TransportError: Error, CustomStringConvertible {
+    public enum TransportError: Error, CustomStringConvertible, LocalizedError {
         case notConfigured
         case http(Int, body: String)
         case badResponse(String)
@@ -43,6 +43,8 @@ public actor SyaiEnvelopedClient {
                 return "Syai account is logged in elsewhere (latched; a re-login is required, not a retry)."
             }
         }
+
+        public var errorDescription: String? { description }
 
         /// Narrow: only dead-session errors may trigger a silent re-login. Network errors,
         /// 5xx, and malformed responses must not burn a login. `AuthFailed_LoginElsewhere` is

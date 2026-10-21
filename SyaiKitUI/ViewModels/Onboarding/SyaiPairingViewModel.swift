@@ -37,11 +37,13 @@ import SyaiKit
 
     private let cgmManager: SyaiCGMManager
     private let onCreated: () -> Void
+    private let onNeedsLogin: () -> Void
     private var task: Task<Void, Never>?
 
-    init(cgmManager: SyaiCGMManager, onCreated: @escaping () -> Void) {
+    init(cgmManager: SyaiCGMManager, onCreated: @escaping () -> Void, onNeedsLogin: @escaping () -> Void = {}) {
         self.cgmManager = cgmManager
         self.onCreated = onCreated
+        self.onNeedsLogin = onNeedsLogin
         retiredMACs = Set(cgmManager.state.sensors.history().compactMap { $0.retiredAt != nil ? $0.mac : nil })
         // Without a usable camera there's nothing to choose between.
         if canScanApplicator {
@@ -122,6 +124,11 @@ import SyaiKit
                 self.onCreated()
             } catch {
                 guard !Task.isCancelled else { return }
+                // A dead account session can't be fixed from here; go sign in again.
+                if case SyaiPairingService.Failure.accountLoggedOutElsewhere = error {
+                    self.onNeedsLogin()
+                    return
+                }
                 self.errorMessage = (error as CustomStringConvertible).description
             }
         }

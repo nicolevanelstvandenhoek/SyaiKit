@@ -43,6 +43,9 @@ public final class SyaiPairingService {
         /// The post-bind coefficients disagree with the ones the server gave
         /// before activation. Refused rather than guessing which set is real.
         case calibrationMismatch
+        /// The account session was revoked server-side by a login elsewhere. Not
+        /// retryable and not silently re-loginable; the user must sign in again.
+        case accountLoggedOutElsewhere
         case underlying(String)
 
         public var description: String {
@@ -61,6 +64,8 @@ public final class SyaiPairingService {
                 return "The sensor is activated, but Syai hasn't provided its calibration yet (\(detail)). Try again; pairing will pick up where it left off."
             case .calibrationMismatch:
                 return "Syai returned two different calibrations for this sensor, so \(Bundle.main.syaiHostAppName) won't use it. Please report this with your logs."
+            case .accountLoggedOutElsewhere:
+                return "Your Syai account was signed in on another device, which ended this session. Sign in again to continue."
             case let .underlying(m):
                 return m
             }
@@ -165,8 +170,14 @@ public final class SyaiPairingService {
             let validation: SyaiSensorValidation
             do {
                 validation = try await calibrationProvider.validate(mac: identity.mac)
+            } catch let error as SyaiEnvelopedClient.TransportError where error.isAccountLoggedInElsewhere {
+                throw Failure.accountLoggedOutElsewhere
             } catch {
-                throw Failure.underlying("Could not check this sensor with Syai: \(error.localizedDescription)")
+                // Prefer the error's own description: `localizedDescription` on a Swift
+                // error without LocalizedError is the generic "The operation couldn't
+                // be completed.", which is all a user would see.
+                let detail = (error as? CustomStringConvertible)?.description ?? error.localizedDescription
+                throw Failure.underlying("Could not check this sensor with Syai: \(detail)")
             }
             expectedCoefficients = validation.coefficients
 
@@ -184,6 +195,9 @@ public final class SyaiPairingService {
                         try await provider.authorizeActivation(mac: identity.mac, authDev: authDev, authFlag: authFlag)
                     }
                 } catch {
+                    if let transport = error as? SyaiEnvelopedClient.TransportError, transport.isAccountLoggedInElsewhere {
+                        throw Failure.accountLoggedOutElsewhere
+                    }
                     if case SyaiActivationSequence.ActivationError.interrupted(at: .activate, _) = error {
                         // The activate command may have landed; the cmd gate on the next attempt tells.
                         activateAttemptedAt = activateAttemptedAt ?? Date()

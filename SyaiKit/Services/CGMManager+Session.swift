@@ -110,6 +110,13 @@ extension SyaiCGMManager {
                 var updated = self.state
                 updated.accountLockedOutElsewhere = lockedOut
                 self.setState(updated)
+                if lockedOut {
+                    // The server has revoked this session, and the Keychain entry
+                    // survives CGM deletion and reinstall. Leaving it would restore
+                    // a dead login on the next add. The in-memory account stays for
+                    // display until the user re-authenticates.
+                    SyaiKeychain.deleteAccount()
+                }
             }
         }
     }

@@ -161,7 +161,8 @@ final class SyaiUIController: UINavigationController, CGMManagerOnboarding, Comp
             let viewModel = SyaiExistingSensorViewModel(
                 cgmManager: cgmManager,
                 onNoneBound: { [weak self] in self?.replaceTopScreen(with: .pairing) },
-                onAdopted: { [weak self] in self?.finishOnboarding() }
+                onAdopted: { [weak self] in self?.finishOnboarding() },
+                onNeedsLogin: { [weak self] in self?.replaceTopScreen(with: .login) }
             )
             return hostingController(
                 rootView: SyaiExistingSensorView(viewModel: viewModel),
@@ -171,7 +172,8 @@ final class SyaiUIController: UINavigationController, CGMManagerOnboarding, Comp
         case .pairing:
             let viewModel = SyaiPairingViewModel(
                 cgmManager: cgmManager,
-                onCreated: { [weak self] in self?.finishOnboarding() }
+                onCreated: { [weak self] in self?.finishOnboarding() },
+                onNeedsLogin: { [weak self] in self?.replaceTopScreen(with: .login) }
             )
             return hostingController(
                 rootView: SyaiPairingView(viewModel: viewModel),
@@ -297,6 +299,12 @@ final class SyaiUIController: UINavigationController, CGMManagerOnboarding, Comp
     /// in") gets one silent re-login attempt first; only on failure does the user
     /// see the login screen.
     private func proceedToPairingOrLogin() {
+        // A session evicted by a login elsewhere looks locally valid (unexpired
+        // refresh token) but is dead server-side; only a manual re-login fixes it.
+        if cgmManager.state.accountLockedOutElsewhere {
+            navigateTo(.login)
+            return
+        }
         if cgmManager.account?.hasValidSession == true {
             configureRealSensorKitIfNeeded()
             navigateToPairingWithDisclosure()

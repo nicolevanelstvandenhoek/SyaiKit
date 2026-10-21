@@ -27,12 +27,19 @@ import SyaiKit
     private let cgmManager: SyaiCGMManager
     private let onNoneBound: () -> Void
     private let onAdopted: () -> Void
+    private let onNeedsLogin: () -> Void
     private var task: Task<Void, Never>?
 
-    init(cgmManager: SyaiCGMManager, onNoneBound: @escaping () -> Void, onAdopted: @escaping () -> Void) {
+    init(
+        cgmManager: SyaiCGMManager,
+        onNoneBound: @escaping () -> Void,
+        onAdopted: @escaping () -> Void,
+        onNeedsLogin: @escaping () -> Void = {}
+    ) {
         self.cgmManager = cgmManager
         self.onNoneBound = onNoneBound
         self.onAdopted = onAdopted
+        self.onNeedsLogin = onNeedsLogin
         check()
     }
 
@@ -55,6 +62,11 @@ import SyaiKit
                 }
             } catch {
                 guard !Task.isCancelled else { return }
+                // A dead account session can't be fixed from here; go sign in again.
+                if let transport = error as? SyaiEnvelopedClient.TransportError, transport.isAccountLoggedInElsewhere {
+                    self.onNeedsLogin()
+                    return
+                }
                 self.phase = .failed(error.localizedDescription)
             }
         }
