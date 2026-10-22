@@ -352,6 +352,33 @@ final class SyaiSensorStoreTests: XCTestCase {
         XCTAssertNil(store.activeMAC)
     }
 
+    /// An unretired record whose wear window already ended gets retired at
+    /// merge (stamped at the true end of wear): a dead sensor must not stay
+    /// pairable, since BLE discovery would otherwise keep auto-picking it and
+    /// the server refuses it on every attempt.
+    func testMergeHistoryRetiresExpiredSensor() {
+        var store = SyaiSensorStore()
+        let activatedAt = Date(timeIntervalSince1970: 1_700_000_000)
+        let expired = SyaiSensorRecord(
+            deviceInfo: makeDevice(mac: "AAA"), keyGroup: makeKeys("AAA"),
+            activatedAt: activatedAt
+        )
+        store.mergeHistory([expired])
+        let record = store.history().first { $0.mac == "AAA" }
+        XCTAssertEqual(record?.retiredAt, activatedAt.addingTimeInterval(14 * 24 * 3600))
+    }
+
+    /// A record still inside its wear window is never retired by a merge.
+    func testMergeHistoryKeepsLiveSensorUnretired() {
+        var store = SyaiSensorStore()
+        let live = SyaiSensorRecord(
+            deviceInfo: makeDevice(mac: "AAA"), keyGroup: makeKeys("AAA"), activatedAt: Date()
+        )
+        store.mergeHistory([live])
+        XCTAssertNil(store.history().first { $0.mac == "AAA" }?.retiredAt)
+        XCTAssertEqual(store.activeMAC, "AAA")
+    }
+
     /// A record with `retiredAt` set was explicitly ended (End Sensor /
     /// discardActive) - never auto-resumed regardless of wear window.
     func testMergeHistoryDoesNotResumeExplicitlyRetiredSensor() {

@@ -11,11 +11,11 @@ import Foundation
 public extension SyaiCGMManager {
     enum AttachError: Error, CustomStringConvertible {
         case notConfigured
-        case service(String)
+        case service(SyaiPairingService.Failure)
         public var description: String {
             switch self {
             case .notConfigured: return "Sensor stack not configured (no sensor kit / calibration provider)."
-            case let .service(m): return m
+            case let .service(f): return f.description
             }
         }
     }

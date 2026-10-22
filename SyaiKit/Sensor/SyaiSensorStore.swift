@@ -216,6 +216,21 @@ public struct SyaiSensorStore: Equatable, Sendable, RawRepresentable {
         }
         trim()
 
+        // Retire records whose wear window has ended. An un-retired record only
+        // means "was active when its manager was deleted", and past the window
+        // it's a dead sensor: it must never be resumed, and it must not look
+        // pairable (pairing excludes retired MACs; the server refuses them).
+        // The currently active record is exempt: its retirement stays with the
+        // explicit End Sensor flow.
+        for idx in records.indices
+            where records[idx].retiredAt == nil && records[idx].mac != activeMAC
+                && !records[idx].isWithinWearWindow
+        {
+            if let activatedAt = records[idx].activatedAt {
+                records[idx].retiredAt = activatedAt.addingTimeInterval(records[idx].deviceInfo.activeDuration)
+            }
+        }
+
         // A record that was never explicitly retired (End Sensor / discardActive)
         // was still the active sensor when its old CGM manager was deleted -
         // deletion itself never retires anything. If this manager doesn't have

@@ -46,6 +46,10 @@ public final class SyaiPairingService {
         /// The account session was revoked server-side by a login elsewhere. Not
         /// retryable and not silently re-loginable; the user must sign in again.
         case accountLoggedOutElsewhere
+        /// The server permanently refused this MAC (ended, already activated, or
+        /// past shelf life). Retrying it can never succeed; callers should stop
+        /// offering this sensor for pairing.
+        case pairingRefused(code: String)
         case underlying(String)
 
         public var description: String {
@@ -66,6 +70,8 @@ public final class SyaiPairingService {
                 return "Syai returned two different calibrations for this sensor, so \(Bundle.main.syaiHostAppName) won't use it. Please report this with your logs."
             case .accountLoggedOutElsewhere:
                 return "Your Syai account was signed in on another device, which ended this session. Sign in again to continue."
+            case let .pairingRefused(code):
+                return SyaiServerCalibrationProvider.ServerError.describeBusiness(code: code)
             case let .underlying(m):
                 return m
             }
@@ -172,6 +178,11 @@ public final class SyaiPairingService {
                 validation = try await calibrationProvider.validate(mac: identity.mac)
             } catch let error as SyaiEnvelopedClient.TransportError where error.isAccountLoggedInElsewhere {
                 throw Failure.accountLoggedOutElsewhere
+            } catch let error as SyaiServerCalibrationProvider.ServerError {
+                if case let .business(code) = error, Self.isPermanentPairingRefusal(code) {
+                    throw Failure.pairingRefused(code: code)
+                }
+                throw Failure.underlying("Could not check this sensor with Syai: \(error.localizedDescription)")
             } catch {
                 // Prefer the error's own description: `localizedDescription` on a Swift
                 // error without LocalizedError is the generic "The operation couldn't
@@ -319,6 +330,12 @@ public final class SyaiPairingService {
     /// were made for.
     static let maxActivationAttempts = 3
     static let activationRetryDelayNanos: UInt64 = 2_000_000_000
+
+    /// Server refusals that can never succeed for this MAC: an ended,
+    /// already-activated, or shelf-life-expired sensor stays unpairable forever.
+    static func isPermanentPairingRefusal(_ code: String) -> Bool {
+        code == "AppDevice_EndUsing" || code == "AppDevice_AlreadyUsed" || code == "AppDevice_OutOfProduceTime"
+    }
 
     /// A dropped link or an interrupted write is worth another connection; the
     /// cmd-state gate keeps a retry from re-activating a sensor that got there.

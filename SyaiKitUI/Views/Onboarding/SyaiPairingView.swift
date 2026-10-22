@@ -85,7 +85,7 @@ struct SyaiPairingView: View {
                             .foregroundColor(.secondary)
                         }
                         ForEach(viewModel.candidates) { candidate in
-                            let isKnown = viewModel.retiredMACs.contains(candidate.mac)
+                            let isKnown = viewModel.excludedMACs.contains(candidate.mac)
                             Button(action: { viewModel.selectedMAC = candidate.mac }) {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 2) {
@@ -168,6 +168,12 @@ struct SyaiPairingView: View {
                 VStack(spacing: 5) {
                     ActivityIndicator(isAnimating: .constant(true), style: .medium)
                     Text("Searching for nearby sensors…", comment: "scanning status").font(.footnote)
+                }
+                .padding(.bottom)
+            case .verifyingApplicator:
+                VStack(spacing: 5) {
+                    ActivityIndicator(isAnimating: .constant(true), style: .medium)
+                    Text("Checking sensor with Syai…", comment: "verifying scanned applicator status").font(.footnote)
                 }
                 .padding(.bottom)
             case .confirming:

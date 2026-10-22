@@ -14,6 +14,9 @@ import SyaiKit
     enum Phase {
         case choosingMethod
         case scanning
+        /// Verifying an applicator-scanned MAC against the server because local
+        /// history (or a refusal earlier this session) flags it as used.
+        case verifyingApplicator
         case confirming
         case picking
         case pairing
@@ -29,10 +32,20 @@ import SyaiKit
     @Published var errorMessage: String?
     @Published var isFinished = false
 
-    let retiredMACs: Set<String>
+    /// Every MAC this phone has ever paired. Activation-pairing a known sensor
+    /// never makes sense: an active one is managed (End Sensor first), one from
+    /// a deleted manager is auto-resumed at merge, an expired one is refused by
+    /// the server, and a bound one is re-attached via the account-side lookup
+    /// (getBindDevice/authInfo), never by user selection.
+    let knownMACs: Set<String>
+    /// MACs the server permanently refused during this session (ended or
+    /// already activated). Not necessarily in the local history, so tracked
+    /// separately; excluded from auto-pick and selection just like known ones.
+    private(set) var refusedMACs: Set<String> = []
+    var excludedMACs: Set<String> { knownMACs.union(refusedMACs) }
 
     var bestCandidate: SyaiSensorCandidate? {
-        candidates.first { !retiredMACs.contains($0.mac) }
+        candidates.first { !excludedMACs.contains($0.mac) }
     }
 
     private let cgmManager: SyaiCGMManager
@@ -44,7 +57,7 @@ import SyaiKit
         self.cgmManager = cgmManager
         self.onCreated = onCreated
         self.onNeedsLogin = onNeedsLogin
-        retiredMACs = Set(cgmManager.state.sensors.history().compactMap { $0.retiredAt != nil ? $0.mac : nil })
+        knownMACs = Set(cgmManager.state.sensors.history().map(\.mac))
         // Without a usable camera there's nothing to choose between.
         if canScanApplicator {
             phase = .choosingMethod
@@ -60,20 +73,48 @@ import SyaiKit
     func didScanApplicator(mac: String) {
         task?.cancel()
         candidates = []
-        guard !retiredMACs.contains(mac) else {
-            scannedMAC = nil
-            selectedMAC = nil
-            errorMessage = String(
-                localized: "This sensor was used before and can't be paired again. Scan the applicator of a new sensor.",
-                comment: "error after scanning a retired sensor"
-            )
-            phase = .choosingMethod
+        guard !excludedMACs.contains(mac) else {
+            verifyFlaggedApplicator(mac: mac)
             return
         }
+        acceptScannedMAC(mac)
+    }
+
+    private func acceptScannedMAC(_ mac: String) {
         errorMessage = nil
         scannedMAC = mac
         selectedMAC = mac
         phase = .confirming
+    }
+
+    /// Scanning an applicator is unambiguous "this is my new sensor" intent, so
+    /// a local flag (known history record or a refusal earlier this session) is
+    /// not the last word: ask the server. It refuses a truly used sensor at
+    /// validate, before any activation write; a false local flag costs one
+    /// read-only call and then pairs normally.
+    private func verifyFlaggedApplicator(mac: String) {
+        errorMessage = nil
+        scannedMAC = mac
+        phase = .verifyingApplicator
+        task = Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await self.cgmManager.validateSensor(mac: mac)
+                guard !Task.isCancelled else { return }
+                self.acceptScannedMAC(mac)
+            } catch {
+                guard !Task.isCancelled else { return }
+                // A dead account session can't be fixed from here; go sign in again.
+                if let transport = error as? SyaiEnvelopedClient.TransportError, transport.isAccountLoggedInElsewhere {
+                    self.onNeedsLogin()
+                    return
+                }
+                self.scannedMAC = nil
+                self.selectedMAC = nil
+                self.errorMessage = (error as? CustomStringConvertible)?.description ?? error.localizedDescription
+                self.phase = .choosingMethod
+            }
+        }
     }
 
     func scan() {
@@ -90,9 +131,9 @@ import SyaiKit
                 guard !Task.isCancelled else { return }
                 self.candidates = found
                 // Auto-present only a fresh (unknown-MAC) advertiser. If the
-                // only sensors heard are ones we already retired, drop to the
+                // only sensors heard are known/refused ones, drop to the
                 // list so the user sees the badges instead of a dead auto-pick.
-                if let best = found.first(where: { !self.retiredMACs.contains($0.mac) }) {
+                if let best = found.first(where: { !self.excludedMACs.contains($0.mac) }) {
                     self.selectedMAC = best.mac
                     self.phase = .confirming
                 } else {
@@ -124,10 +165,21 @@ import SyaiKit
                 self.onCreated()
             } catch {
                 guard !Task.isCancelled else { return }
-                // A dead account session can't be fixed from here; go sign in again.
-                if case SyaiPairingService.Failure.accountLoggedOutElsewhere = error {
-                    self.onNeedsLogin()
-                    return
+                if case let .service(failure) = error as? SyaiCGMManager.AttachError {
+                    // A dead account session can't be fixed from here; go sign in again.
+                    if case .accountLoggedOutElsewhere = failure {
+                        self.onNeedsLogin()
+                        return
+                    }
+                    // The server permanently refused this MAC: stop offering it and
+                    // drop to the list so another advertiser can be picked.
+                    if case .pairingRefused = failure {
+                        self.refusedMACs.insert(mac)
+                        self.selectedMAC = nil
+                        self.errorMessage = failure.description
+                        self.phase = .picking
+                        return
+                    }
                 }
                 self.errorMessage = (error as CustomStringConvertible).description
             }

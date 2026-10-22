@@ -42,8 +42,21 @@ public extension SyaiCGMManager {
             )
             await MainActor.run { self.applyAttachOutcome(outcome) }
         } catch let failure as SyaiPairingService.Failure {
-            throw AttachError.service(failure.description)
+            throw AttachError.service(failure)
         }
+        #endif
+    }
+
+    /// Read-only pairability check for an applicator-scanned MAC that local
+    /// history flags as used. The server, not the local record, is the arbiter
+    /// of "can never pair again": it refuses a truly used sensor at
+    /// `validateDeviceByMacV3`, before any activation write.
+    func validateSensor(mac: String) async throws {
+        #if targetEnvironment(simulator)
+            return
+        #else
+        guard let calibrationProvider else { throw AttachError.notConfigured }
+        _ = try await calibrationProvider.validate(mac: mac)
         #endif
     }
 
