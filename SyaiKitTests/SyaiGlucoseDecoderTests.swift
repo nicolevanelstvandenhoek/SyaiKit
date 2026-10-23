@@ -142,7 +142,7 @@ final class SyaiGlucoseDecoderTests: XCTestCase {
             out.rawGlucoseMgDL,
             18.0,
             accuracy: 1E-9,
-            "base 1.0 mmol/L × 18.0"
+            "base 1.0 mmol/L × mmolToMgDL, rounded to whole mg/dL"
         )
         XCTAssertEqual(out.condition, .belowRange)
         XCTAssertEqual(out.adjustedGlucoseMgDL, SyaiGlucoseDecoder.minDisplayableMgDL)
@@ -164,7 +164,7 @@ final class SyaiGlucoseDecoderTests: XCTestCase {
     /// Coefficients that collapse the RPN to integer mg/dL regardless of
     /// the raw channels: R0=(V1+0)*0+0=0, so R1=V0 dv 0=0 (division-by-zero is
     /// special-cased to 0); R2=0*R1²+0*R1+0=0; R3=0*R2²+0*R2+product=product;
-    /// R4=C10-(V2/86400)*0=1; final=round(round(product*1, 1) mmol/L × 18, 0).
+    /// R4=C10-(V2/86400)*0=1; final=round(round(product*1, 1) mmol/L × mmolToMgDL, 0).
     /// `product` is the canonical mmol/L base, so these tests pin the
     /// clamp/condition logic AND the in-program conversion together.
     private static func constantRPNCoefficients(_ product: Double) -> [Double] {

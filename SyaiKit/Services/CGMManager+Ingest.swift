@@ -133,7 +133,7 @@ extension SyaiCGMManager {
             if let event = plausibilityGuard.record(
                 sequence: sample.sequence,
                 current: rawCurrent,
-                glucoseMmolL: sample.rawBaseMgDL / 18.0
+                glucoseMmolL: sample.rawBaseMgDL / SyaiGlucoseDecoder.mmolToMgDL
             ) {
                 switch event.level {
                 case .attention:

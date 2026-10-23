@@ -7,15 +7,21 @@
 //
 
 import Foundation
+import HealthKit
 
 public struct SyaiGlucoseDecoder {
+    /// mg/dL per mmol/L, from HealthKit's blood-glucose molar mass
+    /// (180.1559 g/mol → 18.01559) — the same constant Nightscout, Android
+    /// xDrip, and LoopKit's `HKUnit.millimolesPerLiter` all convert with.
+    public static let mmolToMgDL = HKUnitMolarMassBloodGlucose / 10
+
     public static let glucoseProgram =
         "V1 C0 ad C1 ml C2 ad;" +
         "V0 R0 2 pw dv;" +
         "C3 0 ml C4 R1 2 pw ml ad C5 R1 ml ad C6 ad;" +
         "C7 R2 2 pw ml C8 R2 ml ad C9 ad;" +
         "C10 V2 86400 dv C11 ml sb V2 C12 1 le ml V2 C12 1 gt C13 ml ad;" +
-        "R3 R4 ml 1 rd 18 ml 0 rd"
+        "R3 R4 ml 1 rd \(SyaiGlucoseDecoder.mmolToMgDL) ml 0 rd"
 
     public struct RawChannels: Equatable, Sendable {
         public let v0: Double
@@ -71,8 +77,9 @@ public struct SyaiGlucoseDecoder {
 
         // The program emits integer mg/dL directly: it rounds its native
         // mmol/L result to the sensor's own 0.1 mmol/L step first (`1 rd`),
-        // then converts and rounds to whole mg/dL (`18 ml 0 rd`), so the value
-        // forwarded to Loop is exactly what the sensor displays.
+        // then converts with the molar-mass constant and rounds to whole
+        // mg/dL (`0 rd`), so the value forwarded to Loop is exactly what
+        // the sensor displays.
         let rawGlucose = try SyaiRPNEvaluator.evaluateProgram(Self.glucoseProgram, environment: env)
 
         // NaN compares false against both clamps below and would pass through

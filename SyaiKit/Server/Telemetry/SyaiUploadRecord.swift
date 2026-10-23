@@ -49,9 +49,10 @@ public struct SyaiUploadRecord: Equatable, Sendable {
         self.origin = origin
     }
 
-    /// RPN mg/dL to upload mmol/L, 1 decimal: `(x*10).rounded()/10`.
+    /// RPN mg/dL to upload mmol/L, 1 decimal, using the same molar-mass
+    /// constant the decoder converted with: `(x*10).rounded()/10`.
     public static func mmol(fromMgDL mgdl: Double) -> Double {
-        ((mgdl / 18.0) * 10).rounded() / 10
+        ((mgdl / SyaiGlucoseDecoder.mmolToMgDL) * 10).rounded() / 10
     }
 
     /// Voltage lift from the framed record `[00 00, idx(2), d]`, deci-volts (30 = 3.0 V):
