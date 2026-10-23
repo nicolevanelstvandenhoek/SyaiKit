@@ -161,12 +161,12 @@ final class SyaiGlucoseDecoderTests: XCTestCase {
         XCTAssertEqual(outIdentity.adjustedGlucoseMgDL, outNonIdentity.adjustedGlucoseMgDL, accuracy: 1E-9)
     }
 
-    /// Coefficients that collapse the RPN to `round(product, 1)` regardless of
+    /// Coefficients that collapse the RPN to integer mg/dL regardless of
     /// the raw channels: R0=(V1+0)*0+0=0, so R1=V0 dv 0=0 (division-by-zero is
     /// special-cased to 0); R2=0*R1²+0*R1+0=0; R3=0*R2²+0*R2+product=product;
-    /// R4=C10-(V2/86400)*0=1; final=round(product*1,1). `product` is the canonical
-    /// mmol/L base — the decoder then converts ×18.0, so these tests pin
-    /// the clamp/condition logic AND the conversion together.
+    /// R4=C10-(V2/86400)*0=1; final=round(round(product*1, 1) mmol/L × 18, 0).
+    /// `product` is the canonical mmol/L base, so these tests pin the
+    /// clamp/condition logic AND the in-program conversion together.
     private static func constantRPNCoefficients(_ product: Double) -> [Double] {
         var c = [Double](repeating: 0, count: 14)
         c[9] = product // C9
@@ -207,6 +207,19 @@ final class SyaiGlucoseDecoderTests: XCTestCase {
         let out = try decoder.glucose(from: raw, calibration: cal)
         XCTAssertNil(out.condition)
         XCTAssertEqual(out.adjustedGlucoseMgDL, 117.0, accuracy: 1E-9)
+    }
+
+    func testGlucoseProgramOutputsIntegerMgDL() throws {
+        // The program quantizes to the sensor's own 0.1 mmol/L step, then emits
+        // whole mg/dL: a 6.1 mmol/L base comes out as exactly 110, never 109.8.
+        let decoder = SyaiGlucoseDecoder()
+        let raw = SyaiGlucoseDecoder.RawChannels(v0: 1000, v1: 1200, v2: 43200)
+        let cal = Calibration(coefficients: Self.constantRPNCoefficients(6.1), k: 1, b: 0)
+        let out = try decoder.glucose(from: raw, calibration: cal)
+        XCTAssertNil(out.condition)
+        XCTAssertEqual(out.adjustedGlucoseMgDL, 110.0, accuracy: 1E-9)
+        // Telemetry converts back to mmol/L and must recover the sensor's value.
+        XCTAssertEqual(SyaiUploadRecord.mmol(fromMgDL: out.rawGlucoseMgDL), 6.1, accuracy: 1E-9)
     }
 
     func testNonFiniteRawChannelThrowsInsteadOfClamping() throws {

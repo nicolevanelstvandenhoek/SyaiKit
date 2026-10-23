@@ -15,7 +15,7 @@ public struct SyaiGlucoseDecoder {
         "C3 0 ml C4 R1 2 pw ml ad C5 R1 ml ad C6 ad;" +
         "C7 R2 2 pw ml C8 R2 ml ad C9 ad;" +
         "C10 V2 86400 dv C11 ml sb V2 C12 1 le ml V2 C12 1 gt C13 ml ad;" +
-        "R3 R4 ml 1 rd"
+        "R3 R4 ml 1 rd 18 ml 0 rd"
 
     public struct RawChannels: Equatable, Sendable {
         public let v0: Double
@@ -69,9 +69,11 @@ public struct SyaiGlucoseDecoder {
             c: calibration.coefficients
         )
 
-        let rawGlucoseMmolL = try SyaiRPNEvaluator.evaluateProgram(Self.glucoseProgram, environment: env)
-
-        let rawGlucose = rawGlucoseMmolL * 18.0
+        // The program emits integer mg/dL directly: it rounds its native
+        // mmol/L result to the sensor's own 0.1 mmol/L step first (`1 rd`),
+        // then converts and rounds to whole mg/dL (`18 ml 0 rd`), so the value
+        // forwarded to Loop is exactly what the sensor displays.
+        let rawGlucose = try SyaiRPNEvaluator.evaluateProgram(Self.glucoseProgram, environment: env)
 
         // NaN compares false against both clamps below and would pass through
         // as an ordinary in-range reading — and crash HKQuantity on the dosing
