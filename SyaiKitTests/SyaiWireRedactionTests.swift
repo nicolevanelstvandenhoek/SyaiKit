@@ -57,8 +57,9 @@ final class SyaiWireRedactionTests: XCTestCase {
         XCTAssertFalse(out.contains("1,2,3,4,5,6,7,8,9,10,11,12,13,14"))
         XCTAssertFalse(out.contains("SERIALNUMBER"))
         XCTAssertFalse(out.contains("BATCHNO"))
-        // MAC and produceTime are not secrets on their own; keep them for debugging.
-        XCTAssertTrue(out.contains("AABBCCDDEEFF"))
+        // The MAC is a persistent identifier; it keeps only its last two bytes.
+        XCTAssertFalse(out.contains("AABBCCDDEEFF"))
+        XCTAssertTrue(out.contains("EEFF"))
     }
 
     func testNumericUserIdIsRedacted() {
