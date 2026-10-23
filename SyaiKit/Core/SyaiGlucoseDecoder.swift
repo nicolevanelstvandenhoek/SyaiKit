@@ -7,13 +7,12 @@
 //
 
 import Foundation
-import HealthKit
 
 public struct SyaiGlucoseDecoder {
-    /// mg/dL per mmol/L, from HealthKit's blood-glucose molar mass
-    /// (180.1559 g/mol → 18.01559) — the same constant Nightscout, Android
-    /// xDrip, and LoopKit's `HKUnit.millimolesPerLiter` all convert with.
-    public static let mmolToMgDL = HKUnitMolarMassBloodGlucose / 10
+    /// mg/dL per mmol/L: the blood-glucose molar mass (180.1559 g/mol),
+    /// matching Nightscout's `MMOL_TO_MGDL` and Android xDrip's constant.
+    /// The program below inlines it as a literal; the tests pin the two in sync.
+    public static let mmolToMgDL = 18.01559
 
     public static let glucoseProgram =
         "V1 C0 ad C1 ml C2 ad;" +
@@ -21,7 +20,7 @@ public struct SyaiGlucoseDecoder {
         "C3 0 ml C4 R1 2 pw ml ad C5 R1 ml ad C6 ad;" +
         "C7 R2 2 pw ml C8 R2 ml ad C9 ad;" +
         "C10 V2 86400 dv C11 ml sb V2 C12 1 le ml V2 C12 1 gt C13 ml ad;" +
-        "R3 R4 ml 1 rd \(SyaiGlucoseDecoder.mmolToMgDL) ml 0 rd"
+        "R3 R4 ml 1 rd 18.01559 ml 0 rd"
 
     public struct RawChannels: Equatable, Sendable {
         public let v0: Double

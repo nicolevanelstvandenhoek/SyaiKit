@@ -18,9 +18,9 @@ final class SyaiGlucoseDecoderTests: XCTestCase {
     }
 
     func testProgramEmbedsMolarMassFactorVerbatim() {
-        // The conversion factor reaches the program text via string
-        // interpolation; pin that the literal round-trips bit-exactly so a
-        // formatting change can never silently shift the conversion.
+        // The program inlines the conversion factor as a literal, while
+        // `mmolToMgDL` serves the Swift side; pin that the two can never
+        // drift apart.
         let factor = SyaiGlucoseDecoder.mmolToMgDL
         XCTAssertTrue(SyaiGlucoseDecoder.glucoseProgram.contains("\(factor) ml 0 rd"))
         XCTAssertEqual(Double("\(factor)")?.bitPattern, factor.bitPattern)
