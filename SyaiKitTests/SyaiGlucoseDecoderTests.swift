@@ -17,6 +17,15 @@ final class SyaiGlucoseDecoderTests: XCTestCase {
         XCTAssertEqual(Calibration.appDefaultCoefficientsFixture[12], 172_800.0)
     }
 
+    func testProgramEmbedsMolarMassFactorVerbatim() {
+        // The conversion factor reaches the program text via string
+        // interpolation; pin that the literal round-trips bit-exactly so a
+        // formatting change can never silently shift the conversion.
+        let factor = SyaiGlucoseDecoder.mmolToMgDL
+        XCTAssertTrue(SyaiGlucoseDecoder.glucoseProgram.contains("\(factor) ml 0 rd"))
+        XCTAssertEqual(Double("\(factor)")?.bitPattern, factor.bitPattern)
+    }
+
     func testRPNEvaluatorBasicOps() throws {
         // "2 3 ad" = 5 ; "5 R0 ml" reads register 0 (=5) → 25 ; last statement wins.
         let env = SyaiRPNEvaluator.Environment(v: [], c: [])
