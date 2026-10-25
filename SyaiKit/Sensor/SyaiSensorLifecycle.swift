@@ -117,10 +117,15 @@ public enum SyaiSensorLifecycle: Equatable {
     }
 }
 
+/// Looks the key up in this framework first, then in the host app, which carries the translations.
 func LocalizedString(_ key: String, tableName: String? = nil, value: String? = nil, comment: String) -> String {
     let bundle = Bundle(for: SyaiCGMManager.self)
+    let localized: String
     if let value = value {
-        return NSLocalizedString(key, tableName: tableName, bundle: bundle, value: value, comment: comment)
+        localized = NSLocalizedString(key, tableName: tableName, bundle: bundle, value: value, comment: comment)
+    } else {
+        localized = NSLocalizedString(key, tableName: tableName, bundle: bundle, comment: comment)
     }
-    return NSLocalizedString(key, tableName: tableName, bundle: bundle, comment: comment)
+    guard localized == (value ?? key) else { return localized }
+    return Bundle.main.localizedString(forKey: key, value: value, table: tableName)
 }
