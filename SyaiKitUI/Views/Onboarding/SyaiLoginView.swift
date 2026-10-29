@@ -72,10 +72,10 @@ struct SyaiLoginView: View {
                         Image(systemName: "exclamationmark.triangle.fill")
                     }
                     .font(.footnote)
-                    .foregroundColor(.red)
+                    .foregroundColor(.pink)
                     .padding(16)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.red.opacity(0.12))
+                    .background(Color.pink.opacity(0.12))
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
             }

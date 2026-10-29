@@ -133,7 +133,7 @@ struct SyaiPairingView: View {
 
                 if let error = viewModel.errorMessage {
                     Section {
-                        Text(error).foregroundColor(.red)
+                        Text(error).foregroundColor(.pink)
                         if viewModel.phase == .pairing {
                             Button(action: viewModel.retry) {
                                 Text("Try Again", comment: "retry button")
