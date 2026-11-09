@@ -318,14 +318,14 @@ public final class SyaiCGMManager: CGMManager, @unchecked Sendable {
         setState(blank)
     }
 
-    public func delete() async {
+    @MainActor public func delete() async {
         isDeleted = true
-        Task { @MainActor in self.cancelReconnect() }
+        cancelReconnect()
         logger.info("cgm delete: releasing BLE link")
         monitor?.disconnect()
         monitor = nil
         #if targetEnvironment(simulator)
-            Task { @MainActor in self.stopSimulation() }
+            stopSimulation()
         #endif
 
         await cgmManagerDelegate?.cgmManagerWantsDeletion(self)
