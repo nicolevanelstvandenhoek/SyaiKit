@@ -21,23 +21,27 @@ struct SyaiSettingsView: View {
 
     var body: some View {
         List {
-            statusSection
+            Group {
+                statusSection
 
-            recentReadingsSection
+                recentReadingsSection
 
-            sensorInformationSection
+                sensorInformationSection
 
-            managementSection
+                managementSection
 
-            accountSection
+                accountSection
 
-            Section {
-                Button(action: { viewModel.activeAlert = .deleteConfirm }) {
-                    Text("Delete CGM", comment: "delete")
-                        .foregroundColor(guidanceColors.critical)
+                Section {
+                    Button(action: { viewModel.activeAlert = .deleteConfirm }) {
+                        Text("Delete CGM", comment: "delete")
+                            .foregroundColor(guidanceColors.critical)
+                    }
                 }
             }
+            .elaraRows()
         }
+        .elaraListBackground()
         .listStyle(InsetGroupedListStyle())
         .alert(item: $viewModel.activeAlert) { alert in
             switch alert {

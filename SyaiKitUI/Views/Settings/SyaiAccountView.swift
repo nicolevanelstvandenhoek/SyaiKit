@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import LoopKitUI
 import SyaiKit
 
 /// Account-management screen. Shows the logged-in account, refresh-token
@@ -68,66 +69,70 @@ struct SyaiAccountView: View {
 
     var body: some View {
         List {
-            Section {
-                labelValueRow(Text("Email", comment: "account email"), Text(verbatim: email))
-                // Show the concrete refresh-token expiry (the ~265-day window)
-                // rather than a bare "Active", since the date is the useful fact.
-                // Fall back to a status word only when no expiry is known.
-                if sessionValid, let expiry = refreshExpiry {
-                    labelValueRow(
-                        Text("Signed in until", comment: "session expiry label"),
-                        Text(verbatim: Self.dateFmt.string(from: expiry))
-                    )
-                } else {
-                    labelValueRow(
-                        Text("Session", comment: "session status"),
-                        sessionValid
-                            ? Text("Active", comment: "session active")
-                            : Text("Expired", comment: "session expired")
-                    )
-                }
-                if accountLockedOutElsewhere {
-                    HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(guidanceColors.warning)
-                        Text(
-                            "Logged in elsewhere. Telemetry is paused until you sign in again.",
-                            comment: "account locked out elsewhere message"
+            Group {
+                Section {
+                    labelValueRow(Text("Email", comment: "account email"), Text(verbatim: email))
+                    // Show the concrete refresh-token expiry (the ~265-day window)
+                    // rather than a bare "Active", since the date is the useful fact.
+                    // Fall back to a status word only when no expiry is known.
+                    if sessionValid, let expiry = refreshExpiry {
+                        labelValueRow(
+                            Text("Signed in until", comment: "session expiry label"),
+                            Text(verbatim: Self.dateFmt.string(from: expiry))
                         )
-                        .foregroundStyle(.secondary)
+                    } else {
+                        labelValueRow(
+                            Text("Session", comment: "session status"),
+                            sessionValid
+                                ? Text("Active", comment: "session active")
+                                : Text("Expired", comment: "session expired")
+                        )
                     }
-                    Button(action: onLoginAgain) {
-                        Text("Sign In Again", comment: "sign in again to clear the account lockout")
+                    if accountLockedOutElsewhere {
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(guidanceColors.warning)
+                            Text(
+                                "Logged in elsewhere. Telemetry is paused until you sign in again.",
+                                comment: "account locked out elsewhere message"
+                            )
+                            .foregroundStyle(.secondary)
+                        }
+                        Button(action: onLoginAgain) {
+                            Text("Sign In Again", comment: "sign in again to clear the account lockout")
+                        }
                     }
                 }
-            }
 
-            Section {
-                ForEach(SyaiTelemetryTier.allCases, id: \.self) { option in
-                    Button(action: {
-                        tier = option
-                        onSetTelemetryTier(option)
-                    }) {
-                        SyaiTelemetryTierRow(tier: option, selected: option == tier)
+                Section {
+                    ForEach(SyaiTelemetryTier.allCases, id: \.self) { option in
+                        Button(action: {
+                            tier = option
+                            onSetTelemetryTier(option)
+                        }) {
+                            SyaiTelemetryTierRow(tier: option, selected: option == tier)
+                        }
                     }
+                } header: {
+                    Text("Data Sharing", comment: "data sharing section")
+                } footer: {
+                    Text(
+                        "Your sensor is registered to your Syai account and released again when you end it whichever option you pick, because that is how a sensor is paired at all. An account with no readings may look unusual to Syai if you ever need warranty or support.",
+                        comment: "data sharing footer"
+                    )
                 }
-            } header: {
-                Text("Data Sharing", comment: "data sharing section")
-            } footer: {
-                Text(
-                    "Your sensor is registered to your Syai account and released again when you end it whichever option you pick, because that is how a sensor is paired at all. An account with no readings may look unusual to Syai if you ever need warranty or support.",
-                    comment: "data sharing footer"
-                )
-            }
 
-            Section {
-                Button(action: { showingLogOutConfirmation = true }) {
-                    Text("Log Out", comment: "log out")
-                        .foregroundColor(guidanceColors.critical)
+                Section {
+                    Button(action: { showingLogOutConfirmation = true }) {
+                        Text("Log Out", comment: "log out")
+                            .foregroundColor(guidanceColors.critical)
+                    }
+                    .alert(isPresented: $showingLogOutConfirmation) { logOutAlert }
                 }
-                .alert(isPresented: $showingLogOutConfirmation) { logOutAlert }
             }
+            .elaraRows()
         }
+        .elaraListBackground()
         .listStyle(InsetGroupedListStyle())
     }
 

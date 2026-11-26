@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import LoopKitUI
 import SyaiKit
 
 /// Diagnostic list of every sensor this install has activated. The MAC (not
@@ -19,26 +20,30 @@ struct SyaiSensorHistoryView: View {
 
     var body: some View {
         List {
-            if records.isEmpty {
-                Section {
-                    Text("No sensors have been paired yet.", comment: "empty sensor history")
-                        .foregroundColor(.secondary)
-                }
-            } else {
-                Section {
-                    ForEach(records) { record in
-                        Button(action: { onSelect(record.deviceInfo) }) {
-                            row(for: record)
-                        }
+            Group {
+                if records.isEmpty {
+                    Section {
+                        Text("No sensors have been paired yet.", comment: "empty sensor history")
+                            .foregroundColor(.secondary)
                     }
-                } footer: {
-                    Text(
-                        "Tap a sensor to see its calibration and device details.",
-                        comment: "sensor history footer"
-                    )
+                } else {
+                    Section {
+                        ForEach(records) { record in
+                            Button(action: { onSelect(record.deviceInfo) }) {
+                                row(for: record)
+                            }
+                        }
+                    } footer: {
+                        Text(
+                            "Tap a sensor to see its calibration and device details.",
+                            comment: "sensor history footer"
+                        )
+                    }
                 }
             }
+            .elaraRows()
         }
+        .elaraListBackground()
         .listStyle(InsetGroupedListStyle())
     }
 

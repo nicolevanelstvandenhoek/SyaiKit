@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import LoopKitUI
 import SyaiKit
 
 struct SyaiFactoryCalibrationsView: View {
@@ -14,27 +15,31 @@ struct SyaiFactoryCalibrationsView: View {
 
     var body: some View {
         List {
-            if let record = activeSensor, !record.mac.isEmpty {
-                Section {
-                    labelValueRow(Text("MAC", comment: "mac address"), Text(verbatim: record.mac))
-                    labelValueRow(Text("Serial", comment: "serial"), Text(verbatim: record.serialNo))
-                    labelValueRow(Text("Batch", comment: "batch"), Text(verbatim: record.batchNo))
-                    labelValueRow(Text("Model", comment: "model"), Text(verbatim: record.deviceType))
-                    labelValueRow(Text("Firmware", comment: "firmware"), Text(verbatim: record.deviceVersion))
-                    labelValueRow(
-                        Text("Production Date", comment: "production date"),
-                        Text(verbatim: Self.produceDateFmt.string(from: record.produceTime))
-                    )
-                    if let expireTime = record.expireTime {
+            Group {
+                if let record = activeSensor, !record.mac.isEmpty {
+                    Section {
+                        labelValueRow(Text("MAC", comment: "mac address"), Text(verbatim: record.mac))
+                        labelValueRow(Text("Serial", comment: "serial"), Text(verbatim: record.serialNo))
+                        labelValueRow(Text("Batch", comment: "batch"), Text(verbatim: record.batchNo))
+                        labelValueRow(Text("Model", comment: "model"), Text(verbatim: record.deviceType))
+                        labelValueRow(Text("Firmware", comment: "firmware"), Text(verbatim: record.deviceVersion))
                         labelValueRow(
-                            Text("Expires", comment: "expiration date"),
-                            Text(verbatim: Self.produceDateFmt.string(from: expireTime))
+                            Text("Production Date", comment: "production date"),
+                            Text(verbatim: Self.produceDateFmt.string(from: record.produceTime))
                         )
+                        if let expireTime = record.expireTime {
+                            labelValueRow(
+                                Text("Expires", comment: "expiration date"),
+                                Text(verbatim: Self.produceDateFmt.string(from: expireTime))
+                            )
+                        }
+                        coefficientTable(record.coefficients)
                     }
-                    coefficientTable(record.coefficients)
                 }
             }
+            .elaraRows()
         }
+        .elaraListBackground()
         .listStyle(InsetGroupedListStyle())
     }
 

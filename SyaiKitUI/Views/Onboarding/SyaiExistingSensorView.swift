@@ -24,43 +24,47 @@ struct SyaiExistingSensorView: View {
     var body: some View {
         VStack {
             List {
-                switch viewModel.phase {
-                case .checking:
-                    Section {
-                        HStack {
-                            ActivityIndicator(isAnimating: .constant(true), style: .medium)
-                            Text("Checking your account for a sensor…", comment: "existing sensor: checking")
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                case let .found(sensor), let .adopting(sensor):
-                    sensorSection(sensor)
-                    Section {
-                        HStack(alignment: .top, spacing: 10) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(guidanceColors.warning)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Close the Syai app first", comment: "existing sensor: one connection title")
-                                    .fontWeight(.heavy)
-                                Text(
-                                    "The sensor can only talk to one app at a time. Force-quit the official Syai app (swipe it away in the app switcher) before continuing, or \(Bundle.main.syaiHostAppName) won't be able to connect.",
-                                    comment: "existing sensor: one connection message (1: appName)"
-                                )
-                                .foregroundStyle(.secondary)
+                Group {
+                    switch viewModel.phase {
+                    case .checking:
+                        Section {
+                            HStack {
+                                ActivityIndicator(isAnimating: .constant(true), style: .medium)
+                                Text("Checking your account for a sensor…", comment: "existing sensor: checking")
+                                    .foregroundColor(.secondary)
                             }
                         }
-                    }
-                case let .unusable(sensor, reason):
-                    sensorSection(sensor)
-                    Section {
-                        Text(reason).foregroundColor(guidanceColors.critical)
-                    }
-                case let .failed(message):
-                    Section {
-                        Text(message).foregroundColor(guidanceColors.critical)
+                    case let .found(sensor), let .adopting(sensor):
+                        sensorSection(sensor)
+                        Section {
+                            HStack(alignment: .top, spacing: 10) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(guidanceColors.warning)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Close the Syai app first", comment: "existing sensor: one connection title")
+                                        .fontWeight(.heavy)
+                                    Text(
+                                        "The sensor can only talk to one app at a time. Force-quit the official Syai app (swipe it away in the app switcher) before continuing, or \(Bundle.main.syaiHostAppName) won't be able to connect.",
+                                        comment: "existing sensor: one connection message (1: appName)"
+                                    )
+                                    .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    case let .unusable(sensor, reason):
+                        sensorSection(sensor)
+                        Section {
+                            Text(reason).foregroundColor(guidanceColors.critical)
+                        }
+                    case let .failed(message):
+                        Section {
+                            Text(message).foregroundColor(guidanceColors.critical)
+                        }
                     }
                 }
+                .elaraRows()
             }
+            .elaraListBackground()
             .listStyle(InsetGroupedListStyle())
 
             buttons

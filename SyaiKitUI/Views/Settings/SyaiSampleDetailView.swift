@@ -19,91 +19,95 @@ struct SyaiSampleDetailView: View {
 
     var body: some View {
         List {
-            Section {
-                row(String(localized: "Value", comment: "sample detail: glucose value"), value: displayGlucosePreference.format(
-                    LoopQuantity(unit: .milligramsPerDeciliter, doubleValue: sample.valueMgDL)
-                ))
-                row(
-                    String(localized: "Time", comment: "sample detail: time"),
-                    value: sample.date.formatted(date: .abbreviated, time: .standard)
-                )
-                row(String(localized: "Time (relative)", comment: "sample detail: relative time")) {
-                    Text(sample.date, style: .relative)
-                        .foregroundStyle(.secondary)
-                }
-                row(String(localized: "Trend", comment: "sample detail: trend"), value: trendLabel)
-                if let rate = sample.rateOfChangeMgDLPerMinute {
-                    row(
-                        String(localized: "Rate of change", comment: "sample detail: rate of change"),
-                        value: displayGlucosePreference.formatMinuteRate(
-                            LoopQuantity(unit: .milligramsPerDeciliterPerMinute, doubleValue: rate)
-                        )
-                    )
-                } else {
-                    row(String(localized: "Rate of change", comment: "sample detail: rate of change"), value: "—")
-                }
-            } header: {
-                Text("Reading", comment: "sample detail section: reading")
-            }
-
-            if sample.condition != nil || sample.hasBlockingIssue {
+            Group {
                 Section {
-                    if let condition = sample.condition {
-                        row(String(localized: "Range", comment: "sample detail: range condition")) {
-                            Text(
-                                condition == .belowRange
-                                    ? String(localized: "Below display range (LO)", comment: "sample detail: below range")
-                                    : String(localized: "Above display range (HI)", comment: "sample detail: above range")
-                            )
+                    row(String(localized: "Value", comment: "sample detail: glucose value"), value: displayGlucosePreference.format(
+                        LoopQuantity(unit: .milligramsPerDeciliter, doubleValue: sample.valueMgDL)
+                    ))
+                    row(
+                        String(localized: "Time", comment: "sample detail: time"),
+                        value: sample.date.formatted(date: .abbreviated, time: .standard)
+                    )
+                    row(String(localized: "Time (relative)", comment: "sample detail: relative time")) {
+                        Text(sample.date, style: .relative)
                             .foregroundStyle(.secondary)
+                    }
+                    row(String(localized: "Trend", comment: "sample detail: trend"), value: trendLabel)
+                    if let rate = sample.rateOfChangeMgDLPerMinute {
+                        row(
+                            String(localized: "Rate of change", comment: "sample detail: rate of change"),
+                            value: displayGlucosePreference.formatMinuteRate(
+                                LoopQuantity(unit: .milligramsPerDeciliterPerMinute, doubleValue: rate)
+                            )
+                        )
+                    } else {
+                        row(String(localized: "Rate of change", comment: "sample detail: rate of change"), value: "—")
+                    }
+                } header: {
+                    Text("Reading", comment: "sample detail section: reading")
+                }
+
+                if sample.condition != nil || sample.hasBlockingIssue {
+                    Section {
+                        if let condition = sample.condition {
+                            row(String(localized: "Range", comment: "sample detail: range condition")) {
+                                Text(
+                                    condition == .belowRange
+                                        ? String(localized: "Below display range (LO)", comment: "sample detail: below range")
+                                        : String(localized: "Above display range (HI)", comment: "sample detail: above range")
+                                )
+                                .foregroundStyle(.secondary)
+                            }
+                        }
+                        if sample.hasBlockingIssue {
+                            row(String(localized: "Issue", comment: "sample detail: quality issue")) {
+                                Text("Sensor reported fault", comment: "sample detail: sensor fault")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    } header: {
+                        Text("Quality", comment: "sample detail section: quality")
+                    }
+                }
+
+                Section {
+                    row(String(localized: "Sent", comment: "sample detail: sent to Trio")) {
+                        HStack(spacing: 6) {
+                            Image(systemName: sentIcon)
+                                .foregroundStyle(sentColor)
+                            Text(sentLabel)
                         }
                     }
-                    if sample.hasBlockingIssue {
-                        row(String(localized: "Issue", comment: "sample detail: quality issue")) {
-                            Text("Sensor reported fault", comment: "sample detail: sensor fault")
+                    if let reason = sample.forwardSkipReason, !sample.wasForwarded {
+                        row(String(localized: "Reason", comment: "sample detail: not-forwarded reason")) {
+                            Text(reason)
+                                .multilineTextAlignment(.trailing)
                                 .foregroundStyle(.secondary)
                         }
                     }
                 } header: {
-                    Text("Quality", comment: "sample detail section: quality")
+                    Text("Forwarding to Trio", comment: "sample detail section: forwarding")
                 }
-            }
 
-            Section {
-                row(String(localized: "Sent", comment: "sample detail: sent to Trio")) {
-                    HStack(spacing: 6) {
-                        Image(systemName: sentIcon)
-                            .foregroundStyle(sentColor)
-                        Text(sentLabel)
-                    }
-                }
-                if let reason = sample.forwardSkipReason, !sample.wasForwarded {
-                    row(String(localized: "Reason", comment: "sample detail: not-forwarded reason")) {
-                        Text(reason)
-                            .multilineTextAlignment(.trailing)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            } header: {
-                Text("Forwarding to Trio", comment: "sample detail section: forwarding")
-            }
-
-            Section {
-                row(String(localized: "Path", comment: "sample detail: source path"), value: sourceLabel)
-                row("Sequence", value: "\(sample.sequence)")
-                    .monospacedDigit()
-                if abs(sample.rawBaseMgDL - sample.valueMgDL) > 0.5 {
-                    row(
-                        String(localized: "Raw base", comment: "sample detail: raw base before range clamp"),
-                        value: displayGlucosePreference.format(
-                            LoopQuantity(unit: .milligramsPerDeciliter, doubleValue: sample.rawBaseMgDL)
+                Section {
+                    row(String(localized: "Path", comment: "sample detail: source path"), value: sourceLabel)
+                    row("Sequence", value: "\(sample.sequence)")
+                        .monospacedDigit()
+                    if abs(sample.rawBaseMgDL - sample.valueMgDL) > 0.5 {
+                        row(
+                            String(localized: "Raw base", comment: "sample detail: raw base before range clamp"),
+                            value: displayGlucosePreference.format(
+                                LoopQuantity(unit: .milligramsPerDeciliter, doubleValue: sample.rawBaseMgDL)
+                            )
                         )
-                    )
+                    }
+                } header: {
+                    Text("Source", comment: "sample detail section: source")
                 }
-            } header: {
-                Text("Source", comment: "sample detail section: source")
             }
+            .elaraRows()
         }
+        .elaraListBackground()
         .navigationTitle(Text("Sample detail", comment: "sample detail screen title"))
         .navigationBarTitleDisplayMode(.inline)
     }

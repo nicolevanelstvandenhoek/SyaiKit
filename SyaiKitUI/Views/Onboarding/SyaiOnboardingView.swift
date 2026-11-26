@@ -17,26 +17,30 @@ struct SyaiOnboardingView: View {
     var body: some View {
         VStack(alignment: .leading) {
             List {
-                Section {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            Spacer()
-                            Image(imageName: "sensor")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: 150)
-                                .padding(.bottom, 10)
-                            Spacer()
+                Group {
+                    Section {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Spacer()
+                                Image(imageName: "sensor")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(height: 150)
+                                    .padding(.bottom, 10)
+                                Spacer()
+                            }
+                            Text("Before you begin", comment: "onboarding header")
+                                .font(.title3).bold()
+                            Text(
+                                "Apply the sensor and sign in to your Syai account. Then, you can activate the sensor and read from it directly in the app.",
+                                comment: "onboarding BYOA explanation"
+                            )
                         }
-                        Text("Before you begin", comment: "onboarding header")
-                            .font(.title3).bold()
-                        Text(
-                            "Apply the sensor and sign in to your Syai account. Then, you can activate the sensor and read from it directly in the app.",
-                            comment: "onboarding BYOA explanation"
-                        )
                     }
                 }
+                .elaraRows()
             }
+            .elaraListBackground()
 
             Spacer()
             VStack(spacing: 10) {

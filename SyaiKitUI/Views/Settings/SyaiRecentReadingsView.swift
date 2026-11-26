@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import LoopKitUI
 import SyaiKit
 
 struct SyaiRecentReadingsView: View {
@@ -15,22 +16,26 @@ struct SyaiRecentReadingsView: View {
 
     var body: some View {
         List {
-            if samples.isEmpty {
-                Section {
-                    Text("No readings yet.", comment: "empty recent readings")
-                        .foregroundColor(.secondary)
-                }
-            } else {
-                Section {
-                    SyaiReadingRowHeader()
-                    ForEach(samples.indices, id: \.self) { idx in
-                        Button(action: { onSelect(samples[idx]) }) {
-                            SyaiReadingRow(sample: samples[idx])
+            Group {
+                if samples.isEmpty {
+                    Section {
+                        Text("No readings yet.", comment: "empty recent readings")
+                            .foregroundColor(.secondary)
+                    }
+                } else {
+                    Section {
+                        SyaiReadingRowHeader()
+                        ForEach(samples.indices, id: \.self) { idx in
+                            Button(action: { onSelect(samples[idx]) }) {
+                                SyaiReadingRow(sample: samples[idx])
+                            }
                         }
                     }
                 }
             }
+            .elaraRows()
         }
+        .elaraListBackground()
         .listStyle(InsetGroupedListStyle())
     }
 }

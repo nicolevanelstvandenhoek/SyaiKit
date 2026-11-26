@@ -21,130 +21,134 @@ struct SyaiPairingView: View {
     var body: some View {
         VStack {
             List {
-                Section {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            Spacer()
-                            Image(imageName: "sensor")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: 150)
-                                .padding(.bottom, 20)
-                            Spacer()
-                        }
-                        if viewModel.phase == .choosingMethod {
-                            Text("Find your sensor", comment: "pairing method header")
-                                .font(.title3).bold()
-                            Text(
-                                "Scan the QR code on the sensor applicator, or search for sensors nearby.",
-                                comment: "pairing method body"
-                            )
-                        } else {
-                            Text("Please be patient", comment: "pairing header")
-                                .font(.title3).bold()
-                            Text(
-                                "Keep your phone near the sensor. This can take up to a minute.",
-                                comment: "pairing body"
-                            )
-                        }
-                    }
-                }
-
-                if viewModel.phase == .confirming, let mac = viewModel.scannedMAC {
+                Group {
                     Section {
-                        Text(mac)
-                    } header: {
-                        Text("Scanned sensor", comment: "scanned applicator header")
-                    }
-                } else if viewModel.phase == .confirming, let candidate = viewModel.bestCandidate {
-                    Section {
-                        // bestCandidate is always a fresh (unknown) MAC. A
-                        // known/retired advertiser is never auto-presented, so
-                        // no retired badge is possible on this card.
-                        HStack {
-                            Text(candidate.mac)
-                            Spacer()
-                            if let rssi = candidate.rssi {
-                                Text("\(rssi) dBm")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Spacer()
+                                Image(imageName: "sensor")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(height: 150)
+                                    .padding(.bottom, 20)
+                                Spacer()
+                            }
+                            if viewModel.phase == .choosingMethod {
+                                Text("Find your sensor", comment: "pairing method header")
+                                    .font(.title3).bold()
+                                Text(
+                                    "Scan the QR code on the sensor applicator, or search for sensors nearby.",
+                                    comment: "pairing method body"
+                                )
+                            } else {
+                                Text("Please be patient", comment: "pairing header")
+                                    .font(.title3).bold()
+                                Text(
+                                    "Keep your phone near the sensor. This can take up to a minute.",
+                                    comment: "pairing body"
+                                )
                             }
                         }
-                    } header: {
-                        Text("Is this your sensor?", comment: "confirm candidate header")
                     }
-                }
 
-                if viewModel.phase == .picking {
-                    Section {
-                        if viewModel.candidates.isEmpty {
-                            Text(
-                                "No sensors heard. The sensor advertises in bursts. Try scanning again.",
-                                comment: "no candidates text"
-                            )
-                            .foregroundColor(.secondary)
+                    if viewModel.phase == .confirming, let mac = viewModel.scannedMAC {
+                        Section {
+                            Text(mac)
+                        } header: {
+                            Text("Scanned sensor", comment: "scanned applicator header")
                         }
-                        ForEach(viewModel.candidates) { candidate in
-                            let isKnown = viewModel.excludedMACs.contains(candidate.mac)
-                            Button(action: { viewModel.selectedMAC = candidate.mac }) {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(candidate.mac)
-                                        if isKnown {
-                                            Text("Previously used, can't be re-paired", comment: "retired sensor badge")
-                                                .font(.caption)
-                                                .foregroundColor(.orange)
-                                        }
-                                    }
-                                    Spacer()
-                                    if let rssi = candidate.rssi {
-                                        Text("\(rssi) dBm")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    if viewModel.selectedMAC == candidate.mac {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(.accentColor)
-                                    }
+                    } else if viewModel.phase == .confirming, let candidate = viewModel.bestCandidate {
+                        Section {
+                            // bestCandidate is always a fresh (unknown) MAC. A
+                            // known/retired advertiser is never auto-presented, so
+                            // no retired badge is possible on this card.
+                            HStack {
+                                Text(candidate.mac)
+                                Spacer()
+                                if let rssi = candidate.rssi {
+                                    Text("\(rssi) dBm")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
                                 }
                             }
-                            .foregroundColor(.primary)
-                            // A known MAC is a bound/retired sensor that can't
-                            // be re-paired: badged but not selectable.
-                            .disabled(isKnown)
+                        } header: {
+                            Text("Is this your sensor?", comment: "confirm candidate header")
                         }
-                    } header: {
-                        Text("Select your sensor", comment: "candidate list header")
                     }
-                }
 
-                if viewModel.phase == .pairing, let mac = viewModel.selectedMAC {
-                    Section {
-                        // The MAC stays on screen for the whole flow: if it
-                        // isn't the user's sensor, they bail out instead of
-                        // activating the wrong one.
-                        HStack {
-                            Text("Found sensor", comment: "discovered sensor label")
-                            Spacer()
-                            Text(mac).foregroundColor(.secondary)
+                    if viewModel.phase == .picking {
+                        Section {
+                            if viewModel.candidates.isEmpty {
+                                Text(
+                                    "No sensors heard. The sensor advertises in bursts. Try scanning again.",
+                                    comment: "no candidates text"
+                                )
+                                .foregroundColor(.secondary)
+                            }
+                            ForEach(viewModel.candidates) { candidate in
+                                let isKnown = viewModel.excludedMACs.contains(candidate.mac)
+                                Button(action: { viewModel.selectedMAC = candidate.mac }) {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(candidate.mac)
+                                            if isKnown {
+                                                Text("Previously used, can't be re-paired", comment: "retired sensor badge")
+                                                    .font(.caption)
+                                                    .foregroundColor(.orange)
+                                            }
+                                        }
+                                        Spacer()
+                                        if let rssi = candidate.rssi {
+                                            Text("\(rssi) dBm")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        if viewModel.selectedMAC == candidate.mac {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .foregroundColor(.accentColor)
+                                        }
+                                    }
+                                }
+                                .foregroundColor(.primary)
+                                // A known MAC is a bound/retired sensor that can't
+                                // be re-paired: badged but not selectable.
+                                .disabled(isKnown)
+                            }
+                        } header: {
+                            Text("Select your sensor", comment: "candidate list header")
                         }
                     }
-                }
 
-                if let error = viewModel.errorMessage {
-                    Section {
-                        Text(error).foregroundColor(.pink)
-                        if viewModel.phase == .pairing {
-                            Button(action: viewModel.retry) {
-                                Text("Try Again", comment: "retry button")
+                    if viewModel.phase == .pairing, let mac = viewModel.selectedMAC {
+                        Section {
+                            // The MAC stays on screen for the whole flow: if it
+                            // isn't the user's sensor, they bail out instead of
+                            // activating the wrong one.
+                            HStack {
+                                Text("Found sensor", comment: "discovered sensor label")
+                                Spacer()
+                                Text(mac).foregroundColor(.secondary)
                             }
-                            Button(action: viewModel.backToConfirmation) {
-                                Text("Change Sensor", comment: "back to sensor confirmation button")
+                        }
+                    }
+
+                    if let error = viewModel.errorMessage {
+                        Section {
+                            Text(error).foregroundColor(.pink)
+                            if viewModel.phase == .pairing {
+                                Button(action: viewModel.retry) {
+                                    Text("Try Again", comment: "retry button")
+                                }
+                                Button(action: viewModel.backToConfirmation) {
+                                    Text("Change Sensor", comment: "back to sensor confirmation button")
+                                }
                             }
                         }
                     }
                 }
+                .elaraRows()
             }
+            .elaraListBackground()
             Spacer()
 
             switch viewModel.phase {
